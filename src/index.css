@@ -1,0 +1,62 @@
+@import "tailwindcss";
+
+@theme {
+  /* colors */
+  --color-player-one: #31c3bd;
+  --color-player-one-opaque: #65e9e4;
+  --color-player-two: #f2b137;
+  --color-player-two-opaque: #ffc860;
+
+  --color-neutral-950: #000;
+  --color-neutral-0: #fff;
+
+  --color-slate-100: #dbe8ed;
+  --color-slate-300: #a8bfc9;
+  --color-slate-800: #1f3641;
+  --color-slate-850: #21313b;
+  --color-slate-900: #1a2a33;
+
+  --inset-shadow-player-one: inset 0 -8px 0 var(--color-player-one-opaque);
+  --inset-shadow-player-two: inset 0 -8px 0 var(--color-player-two-opaque);
+  --font-outfit: "Outfit", sans-serif;
+}
+
+@layer base {
+  body {
+    @apply font-outfit min-h-dvh antialiased bg-neutral-950 grid place-items-center p-4;
+  }
+
+  #root {
+    @apply w-full max-w-3xl rounded-lg;
+  }
+}
+
+@layer components {
+  .text-preset-1 {
+    @apply font-outfit font-bold text-[2.5rem] leading-[125%] tracking-[2.5px];
+  }
+
+  .text-preset-2 {
+    @apply font-outfit font-bold text-[1.5rem] leading-[125%] tracking-[1.5px];
+  }
+
+  .text-preset-3 {
+    @apply font-outfit font-bold text-[1.25rem] leading-[125%] tracking-[1.25px];
+  }
+
+  .text-preset-4 {
+    @apply font-outfit font-bold text-[1rem] leading-[125%] tracking-[1px];
+  }
+
+  .text-preset-5-bold {
+    @apply font-outfit font-bold text-[0.875rem] leading-[130%] tracking-[0.9px];
+  }
+
+  .text-preset-5-medium {
+    @apply font-outfit font-medium text-[0.875rem] leading-[130%] tracking-[0.9px];
+  }
+
+  .text-preset-6 {
+    @apply font-outfit font-medium text-[0.75rem] leading-[125%] tracking-[0.75px];
+  }
+}
