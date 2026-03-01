@@ -1,6 +1,7 @@
 import { Xsvg, Osvg } from "@/ui/SVG.jsx";
 import Button from "@/ui/Button.jsx";
 import Logo from "@/ui/Logo.jsx";
+import RestartIcon from "@/assets/images/icon-restart.svg";
 import { useState } from "react";
 
 function App() {
@@ -31,13 +32,60 @@ function App() {
         />
       )}
 
-      {screenToShow === "game" && <GameScreen />}
+      {screenToShow === "game" && <GameStart />}
     </>
   );
 }
 
-function GameScreen() {
-  return <div>Game screen</div>;
+function GameStart() {
+  return (
+    <>
+      <GameHeader />
+      <GameBoard />
+    </>
+  );
+}
+
+function GameHeader() {
+  return (
+    <header className="flex items-center justify-between">
+      <Logo />
+      <PlayerTurnIndicator />
+      <Restart />
+    </header>
+  );
+}
+
+function PlayerTurnIndicator() {
+  return (
+    <div className="text-slate-300 uppercase bg-slate-800 rounded-2xl p-4 text-preset-5-bold md:text-preset-4 flex items-center gap-2">
+      <Xsvg className="size-6" /> turn
+    </div>
+  );
+}
+
+function GameBoard() {
+  return (
+    <div className="grid grid-cols-3 gap-4 mt-6">
+      {Array.from({ length: 9 }).map((_, index) => (
+        <Button
+          key={index}
+          className="w-30 h-20 cursor-pointer bg-slate-800 "
+        ></Button>
+      ))}
+    </div>
+  );
+}
+
+function Restart() {
+  return (
+    <Button
+      aria-label="Restart game"
+      className="bg-slate-300 hover:bg-slate-100 p-4"
+    >
+      <img src={RestartIcon} alt="" />
+    </Button>
+  );
 }
 
 function WelcomeScreen({ selectedMark, onSelectMark, onSetGameMode }) {
