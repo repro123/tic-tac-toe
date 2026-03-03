@@ -23,11 +23,11 @@
 
 @layer base {
   body {
-    @apply font-outfit min-h-dvh antialiased bg-neutral-950 grid place-items-center p-4;
+    @apply font-outfit min-h-dvh antialiased bg-slate-900 grid place-items-center p-4;
   }
 
   #root {
-    @apply w-full max-w-3xl rounded-lg;
+    @apply w-full max-w-xl rounded-lg;
   }
 }
 

@@ -2,7 +2,7 @@ function Button({ children, className = "", ...props }) {
   return (
     <button
       type="buton"
-      className={`rounded-2xl cursor-pointer uppercase ${className}`}
+      className={`rounded-2xl uppercase ${className}`}
       {...props}
     >
       {children}
