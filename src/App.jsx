@@ -1,11 +1,13 @@
 import { Xsvg, Osvg } from "@/ui/SVG.jsx";
 import IconOutlineO from "@/assets/images/icon-o-outline.svg";
 import IconOutlineX from "@/assets/images/icon-x-outline.svg";
+import GameHeader from "@/components/GameHeader.jsx";
+import WelcomeScreen from "@/components/WelcomeScreen.jsx";
 
 import Button from "@/ui/Button.jsx";
-import Logo from "@/ui/Logo.jsx";
+
 import ResultsPanels from "@/ui/ResultPanels.jsx";
-import RestartIcon from "@/assets/images/icon-restart.svg";
+
 import { useRef, useState, useEffect } from "react";
 
 function App() {
@@ -16,6 +18,9 @@ function App() {
   const [currentTurn, setCurrentTurn] = useState("X");
   const [hoveredIndex, setHoveredIndex] = useState(null);
   const [modalType, setModalType] = useState(null);
+  const [gameOver, setGameOver] = useState(false);
+  const [winningTiles, setWinningTiles] = useState([]);
+  const [winnerMark, setWinnerMark] = useState(null);
 
   const playerOneMark = selectedMark;
   const playerTwoMark = selectedMark === "X" ? "O" : "X";
@@ -23,9 +28,13 @@ function App() {
   function resetGame() {
     setTiles(Array(9).fill(null));
     setCurrentTurn("X");
+    setWinnerMark(null);
+    setWinningTiles([]);
+    setGameOver(false);
   }
 
   function handleMouseEnter(index) {
+    if (gameOver) return;
     if (tiles[index] === null) {
       setHoveredIndex(index);
       console.log(index);
@@ -37,12 +46,23 @@ function App() {
   }
 
   function handleTileClick(index) {
+    if (gameOver) return;
+    setHoveredIndex(null);
     const newTiles = [...tiles];
     if (newTiles[index] === null) {
       newTiles[index] = currentTurn;
       setTiles(newTiles);
-      setCurrentTurn((e) => (e === "X" ? "O" : "X"));
-      setHoveredIndex(null);
+      if (checkWinner(newTiles)) {
+        setTimeout(() => {
+          setModalType("win");
+        }, 1000);
+        setGameOver(true);
+      } else if (newTiles.every((t) => t !== null)) {
+        setModalType("draw");
+        setGameOver(true);
+      } else {
+        setCurrentTurn((e) => (e === "X" ? "O" : "X"));
+      }
     }
   }
 
@@ -57,6 +77,32 @@ function App() {
 
   function handleSelectMark() {
     setSelectedMark((prev) => (prev === "X" ? "O" : "X"));
+  }
+
+  function checkWinner(board) {
+    const winPatterns = [
+      [0, 1, 2],
+      [3, 4, 5],
+      [6, 7, 8],
+      [0, 3, 6],
+      [1, 4, 7],
+      [2, 5, 8],
+      [0, 4, 8],
+      [2, 4, 6],
+    ];
+
+    for (let pattern of winPatterns) {
+      const [a, b, c] = pattern;
+
+      if (board[a] && board[a] === board[b] && board[a] === board[c]) {
+        setWinningTiles(pattern);
+        setWinnerMark(board[a]);
+
+        return board[a];
+      }
+    }
+
+    return null;
   }
 
   function handleSetModalType(type) {
@@ -88,6 +134,8 @@ function App() {
             handleMouseLeave={handleMouseLeave}
             currentTurn={currentTurn}
             handleSetModalType={handleSetModalType}
+            winningTiles={winningTiles}
+            winnerMark={winnerMark}
           />
 
           {modalType !== null && (
@@ -95,6 +143,9 @@ function App() {
               type={modalType}
               onClose={handleCloseModal}
               onReset={resetGame}
+              winnerMark={winnerMark}
+              handleSetScreen={handleSetScreen}
+              handleSetModalType={handleSetModalType}
             />
           )}
         </>
@@ -103,7 +154,14 @@ function App() {
   );
 }
 
-function Modal({ type, onClose, onReset }) {
+function Modal({
+  type,
+  onClose,
+  onReset,
+  winnerMark,
+  handleSetScreen,
+  handleSetModalType,
+}) {
   const dialogRef = useRef(null);
 
   useEffect(() => {
@@ -127,6 +185,13 @@ function Modal({ type, onClose, onReset }) {
   function handleConfirm() {
     onReset();
     dialogRef.current.close();
+  }
+
+  function handleQuit() {
+    onReset();
+    dialogRef.current.close();
+    handleSetScreen("welcome");
+    handleSetModalType(null);
   }
 
   return (
@@ -153,6 +218,56 @@ function Modal({ type, onClose, onReset }) {
           </div>
         </>
       )}
+
+      {type === "win" && (
+        <>
+          <p className="text-preset-5-bold md:text-preset-4">player xxx wins</p>
+          <p
+            className={`text-preset-2 md:text-preset-1 ${winnerMark === "X" ? "text-player-one" : "text-player-two"} flex gap-4 items-center`}
+          >
+            {winnerMark === "X" ? (
+              <Xsvg className="text-player-one size-12" />
+            ) : (
+              <Osvg className="text-player-two size-12" />
+            )}{" "}
+            <span>takes the round</span>
+          </p>
+          <div className="text-slate-900 flex items-center gap-2">
+            <Button
+              className="bg-slate-300 cursor-pointer text-preset-4 p-4 hover:bg-slate-100"
+              onClick={handleQuit}
+            >
+              quit
+            </Button>
+            <Button
+              className="bg-player-two cursor-pointer text-preset-4 p-4 hover:bg-player-two-opaque"
+              onClick={handleConfirm}
+            >
+              next round
+            </Button>
+          </div>
+        </>
+      )}
+
+      {type === "draw" && (
+        <>
+          <p className="text-preset-2 md:text-preset-1">round tied</p>
+          <div className="text-slate-900 flex items-center gap-2">
+            <Button
+              className="bg-slate-300 cursor-pointer text-preset-4 p-4 hover:bg-slate-100"
+              onClick={handleQuit}
+            >
+              Quit
+            </Button>
+            <Button
+              className="bg-player-two cursor-pointer text-preset-4 p-4 hover:bg-player-two-opaque"
+              onClick={handleConfirm}
+            >
+              Next round
+            </Button>
+          </div>
+        </>
+      )}
     </dialog>
   );
 }
@@ -166,10 +281,15 @@ function GameStart({
   hoveredIndex,
   currentTurn,
   handleSetModalType,
+  winningTiles,
+  winnerMark,
 }) {
   return (
     <>
-      <GameHeader handleSetModalType={handleSetModalType} />
+      <GameHeader
+        handleSetModalType={handleSetModalType}
+        currentTurn={currentTurn}
+      />
       <GameBoard
         handleTileClick={handleTileClick}
         tiles={tiles}
@@ -177,6 +297,8 @@ function GameStart({
         handleMouseEnter={handleMouseEnter}
         handleMouseLeave={handleMouseLeave}
         currentTurn={currentTurn}
+        winningTiles={winningTiles}
+        winnerMark={winnerMark}
       />
       <GameResults gameMode={gameMode} />
     </>
@@ -211,24 +333,6 @@ function GameResults({ gameMode }) {
   );
 }
 
-function GameHeader({ handleSetModalType }) {
-  return (
-    <header className="flex items-center justify-between">
-      <Logo />
-      <PlayerTurnIndicator />
-      <Restart handleSetModalType={handleSetModalType} />
-    </header>
-  );
-}
-
-function PlayerTurnIndicator() {
-  return (
-    <div className="text-slate-300 uppercase bg-slate-800 rounded-2xl p-4 text-preset-5-bold md:text-preset-4 flex items-center gap-2">
-      <Xsvg className="size-6" /> turn
-    </div>
-  );
-}
-
 function GameBoard({
   handleTileClick,
   tiles,
@@ -236,13 +340,15 @@ function GameBoard({
   handleMouseLeave,
   hoveredIndex,
   currentTurn,
+  winningTiles,
+  winnerMark,
 }) {
   return (
     <div className="grid grid-cols-3 gap-4 mt-6">
       {Array.from({ length: 9 }).map((_, index) => (
         <Button
           key={index}
-          className={`border bg-slate-800 aspect-square flex items-center justify-center ${tiles[index] ? "cursor-not-allowed" : "cursor-pointer"}`}
+          className={`border  aspect-square flex items-center justify-center ${tiles[index] ? "cursor-not-allowed" : "cursor-pointer"} ${winningTiles.includes(index) && winnerMark === "X" ? "bg-player-one" : winningTiles.includes(index) && winnerMark === "O" ? "bg-player-two" : "bg-slate-800"}`}
           onClick={() => handleTileClick(index)}
           onMouseEnter={() => handleMouseEnter(index)}
           onMouseLeave={() => handleMouseLeave()}
@@ -253,114 +359,18 @@ function GameBoard({
               alt=""
             />
           )}
-          {tiles[index] === "X" && <Xsvg className="size-16 text-player-one" />}
-          {tiles[index] === "O" && <Osvg className="size-16 text-player-two" />}
+          {tiles[index] === "X" && (
+            <Xsvg
+              className={`size-16 text-player-one ${winnerMark === "X" && "text-slate-800"}`}
+            />
+          )}
+          {tiles[index] === "O" && (
+            <Osvg
+              className={`size-16 text-player-two ${winnerMark === "O" && "text-slate-800"}`}
+            />
+          )}
         </Button>
       ))}
-    </div>
-  );
-}
-
-function Restart({ handleSetModalType }) {
-  return (
-    <Button
-      aria-label="Restart game"
-      className="bg-slate-300 cursor-pointer hover:bg-slate-100 p-4"
-      onClick={() => handleSetModalType("restart")}
-    >
-      <img src={RestartIcon} alt="" />
-    </Button>
-  );
-}
-
-function WelcomeScreen({ selectedMark, onSelectMark, onSetGameMode }) {
-  return (
-    <>
-      <WelcomeHeader />
-      <WelcomeScreenMenu
-        selectedMark={selectedMark}
-        onSelectMark={onSelectMark}
-      />
-      <WelcomeScreeenButtons onSetGameMode={onSetGameMode} />
-    </>
-  );
-}
-
-function WelcomeHeader() {
-  return (
-    <header className="flex items-center justify-center">
-      <Logo />
-    </header>
-  );
-}
-
-function WelcomeScreenMenu({ selectedMark, onSelectMark }) {
-  return (
-    <fieldset className="bg-slate-800 text-center flex flex-col gap-4 p-4 rounded-2xl mt-6 text-slate-300 uppercase">
-      <legend className="sr-only ">Pick player 1's mark</legend>
-      <p className="text-preset-4 ">Pick player 1's mark</p>
-
-      <form className="bg-slate-900 rounded-[10px] p-4 w-full">
-        <div className="relative flex">
-          <div
-            className={`absolute inset-0 w-1/2 bg-slate-300 rounded-lg transition-transform duration-300 ${selectedMark === "O" ? "translate-x-full" : ""}`}
-          />
-
-          {["X", "O"].map((mark) => (
-            <label
-              key={mark}
-              className="relative z-10 flex-1 grid place-items-center cursor-pointer py-2 hover:bg-slate-100/10 rounded-lg"
-            >
-              <span className="sr-only">{mark}</span>
-              {mark === "X" ? (
-                <Xsvg
-                  className={
-                    selectedMark === "X"
-                      ? "text-slate-900 size-12"
-                      : "text-slate-300 size-12"
-                  }
-                />
-              ) : (
-                <Osvg
-                  className={
-                    selectedMark === "O"
-                      ? "text-slate-900 size-12"
-                      : "text-slate-300 size-12"
-                  }
-                />
-              )}
-              <input
-                type="radio"
-                name="Player1Mark"
-                value={mark}
-                onChange={onSelectMark}
-                className="sr-only"
-              />
-            </label>
-          ))}
-        </div>
-      </form>
-
-      <p className="text-preset-5-bold">Remember: X goes first</p>
-    </fieldset>
-  );
-}
-
-function WelcomeScreeenButtons({ onSetGameMode }) {
-  return (
-    <div className="grid gap-4 mt-6 border text-preset-4 md:text-preset-3 text-slate-900 ">
-      <Button
-        className="w-full bg-player-two inset-shadow-player-two px-3 py-6 hover:bg-player-two-opaque cursor-pointer"
-        onClick={() => onSetGameMode("cpu")}
-      >
-        new game (vs cpu)
-      </Button>
-      <Button
-        className="w-full bg-player-one inset-shadow-player-one px-3 py-6 hover:bg-player-one-opaque cursor-pointer"
-        onClick={() => onSetGameMode("player")}
-      >
-        new game (vs player)
-      </Button>
     </div>
   );
 }
