@@ -1,26 +1,79 @@
-import { Xsvg, Osvg } from "@/ui/SVG.jsx";
-import IconOutlineO from "@/assets/images/icon-o-outline.svg";
-import IconOutlineX from "@/assets/images/icon-x-outline.svg";
-import GameHeader from "@/components/GameHeader.jsx";
+import GameStart from "@/components/GameStart.jsx";
 import WelcomeScreen from "@/components/WelcomeScreen.jsx";
+import Modal from "@/ui/Modal.jsx";
+import { useState, useEffect } from "react";
 
-import Button from "@/ui/Button.jsx";
-
-import ResultsPanels from "@/ui/ResultPanels.jsx";
-
-import { useRef, useState, useEffect } from "react";
+const STORAGE_KEY = "tic-tac-toe-state";
 
 function App() {
-  const [screenToShow, setScreenToShow] = useState("welcome");
-  const [selectedMark, setSelectedMark] = useState("X");
-  const [gameMode, setGameMode] = useState("");
-  const [tiles, setTiles] = useState(Array(9).fill(null));
-  const [currentTurn, setCurrentTurn] = useState("X");
+  const savedGame = localStorage.getItem("tic-tac-toe-state");
+  const parsedGame = savedGame ? JSON.parse(savedGame) : null;
+
+  const [screenToShow, setScreenToShow] = useState(() => {
+    return window.location.pathname === "/game" ? "game" : "welcome";
+  });
+  const [selectedMark, setSelectedMark] = useState(
+    parsedGame?.selectedMark ?? "X",
+  );
+  const [gameMode, setGameMode] = useState(parsedGame?.gameMode ?? "");
+  const [tiles, setTiles] = useState(parsedGame?.tiles ?? Array(9).fill(null));
+  const [currentTurn, setCurrentTurn] = useState(
+    parsedGame?.currentTurn ?? "X",
+  );
   const [hoveredIndex, setHoveredIndex] = useState(null);
   const [modalType, setModalType] = useState(null);
-  const [gameOver, setGameOver] = useState(false);
-  const [winningTiles, setWinningTiles] = useState([]);
-  const [winnerMark, setWinnerMark] = useState(null);
+  const [gameOver, setGameOver] = useState(parsedGame?.gameOver ?? false);
+  const [winningTiles, setWinningTiles] = useState(
+    parsedGame?.winningTiles ?? [],
+  );
+  const [winnerMark, setWinnerMark] = useState(parsedGame?.winnerMark ?? null);
+  const [scores, setScores] = useState(
+    parsedGame?.scores ?? {
+      X: 0,
+      draw: 0,
+      O: 0,
+    },
+  );
+
+  useEffect(() => {
+    function handlePopState() {
+      const path = window.location.pathname;
+
+      if (path === "/game") {
+        setScreenToShow("game");
+      } else {
+        setScreenToShow("welcome");
+      }
+    }
+
+    window.addEventListener("popstate", handlePopState);
+
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, []);
+
+  useEffect(() => {
+    const data = {
+      tiles,
+      currentTurn,
+      scores,
+      selectedMark,
+      gameMode,
+      gameOver,
+      winnerMark,
+      winningTiles,
+    };
+
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  }, [
+    tiles,
+    currentTurn,
+    scores,
+    selectedMark,
+    gameMode,
+    gameOver,
+    winnerMark,
+    winningTiles,
+  ]);
 
   const playerOneMark = selectedMark;
   const playerTwoMark = selectedMark === "X" ? "O" : "X";
@@ -31,13 +84,24 @@ function App() {
     setWinnerMark(null);
     setWinningTiles([]);
     setGameOver(false);
+    localStorage.removeItem(STORAGE_KEY);
+  }
+
+  function resetScores() {
+    setScores({
+      X: 0,
+      draw: 0,
+      O: 0,
+    });
   }
 
   function handleMouseEnter(index) {
     if (gameOver) return;
+
+    if (gameMode === "cpu" && currentTurn === playerTwoMark) return;
+
     if (tiles[index] === null) {
       setHoveredIndex(index);
-      console.log(index);
     }
   }
 
@@ -47,18 +111,29 @@ function App() {
 
   function handleTileClick(index) {
     if (gameOver) return;
+    if (gameMode === "cpu" && currentTurn === playerTwoMark) return;
     setHoveredIndex(null);
     const newTiles = [...tiles];
     if (newTiles[index] === null) {
       newTiles[index] = currentTurn;
       setTiles(newTiles);
-      if (checkWinner(newTiles)) {
+
+      const winner = checkWinner(newTiles);
+
+      if (winner) {
         setTimeout(() => {
           setModalType("win");
         }, 1000);
+
+        setScores((prev) => ({
+          ...prev,
+          [winner]: prev[winner] + 1,
+        }));
         setGameOver(true);
       } else if (newTiles.every((t) => t !== null)) {
         setModalType("draw");
+
+        setScores((prev) => ({ ...prev, draw: prev.draw + 1 }));
         setGameOver(true);
       } else {
         setCurrentTurn((e) => (e === "X" ? "O" : "X"));
@@ -68,11 +143,16 @@ function App() {
 
   function handleSetScreen(screen) {
     setScreenToShow(screen);
+
+    const path = screen === "welcome" ? "/" : "/game";
+    history.pushState({ screen }, "", path);
   }
 
   function handleGameMode(mode) {
     setGameMode(mode);
     setScreenToShow("game");
+
+    history.pushState({ screen: "game" }, "", "/game");
   }
 
   function handleSelectMark() {
@@ -113,6 +193,112 @@ function App() {
     setModalType(null);
   }
 
+  function getAvailableMoves(board) {
+    return board
+      .map((v, i) => (v === null ? i : null))
+      .filter((v) => v !== null);
+  }
+
+  function checkWinnerStatic(board) {
+    const patterns = [
+      [0, 1, 2],
+      [3, 4, 5],
+      [6, 7, 8],
+      [0, 3, 6],
+      [1, 4, 7],
+      [2, 5, 8],
+      [0, 4, 8],
+      [2, 4, 6],
+    ];
+
+    for (let [a, b, c] of patterns) {
+      if (board[a] && board[a] === board[b] && board[a] === board[c]) {
+        return board[a];
+      }
+    }
+    return null;
+  }
+
+  // minimax AI
+  function minimax(board, isMaximizing) {
+    const cpuMark = playerTwoMark;
+    const humanMark = playerOneMark;
+
+    const winner = checkWinnerStatic(board);
+
+    if (winner === cpuMark) return { score: 10 };
+    if (winner === humanMark) return { score: -10 };
+    if (board.every((t) => t !== null)) return { score: 0 };
+
+    const moves = [];
+
+    for (let index of getAvailableMoves(board)) {
+      const newBoard = [...board];
+      newBoard[index] = isMaximizing ? cpuMark : humanMark;
+
+      const result = minimax(newBoard, !isMaximizing);
+
+      moves.push({
+        index,
+        score: result.score,
+      });
+    }
+
+    if (isMaximizing) {
+      return moves.reduce((best, move) =>
+        move.score > best.score ? move : best,
+      );
+    } else {
+      return moves.reduce((best, move) =>
+        move.score < best.score ? move : best,
+      );
+    }
+  }
+
+  // choose best move
+  function getBestMove(board) {
+    return minimax(board, true).index;
+  }
+
+  function handleCpuMove() {
+    const bestMove = getBestMove(tiles);
+
+    const newTiles = [...tiles];
+    newTiles[bestMove] = playerTwoMark;
+    setTiles(newTiles);
+
+    const winner = checkWinner(newTiles);
+
+    if (winner) {
+      setTimeout(() => setModalType("win"), 1000);
+
+      setScores((prev) => ({
+        ...prev,
+        [winner]: prev[winner] + 1,
+      }));
+
+      setGameOver(true);
+    } else if (newTiles.every((t) => t !== null)) {
+      setModalType("draw");
+      setScores((prev) => ({ ...prev, draw: prev.draw + 1 }));
+      setGameOver(true);
+    } else {
+      setCurrentTurn(playerOneMark);
+    }
+  }
+
+  useEffect(() => {
+    if (gameMode !== "cpu") return;
+    if (gameOver) return;
+    if (currentTurn !== playerTwoMark) return;
+
+    const timer = setTimeout(() => {
+      handleCpuMove();
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [tiles, currentTurn, gameMode, gameOver, screenToShow]);
+
   return (
     <>
       {screenToShow === "welcome" && (
@@ -136,6 +322,9 @@ function App() {
             handleSetModalType={handleSetModalType}
             winningTiles={winningTiles}
             winnerMark={winnerMark}
+            scores={scores}
+            playerOneMark={playerOneMark}
+            playerTwoMark={playerTwoMark}
           />
 
           {modalType !== null && (
@@ -143,235 +332,18 @@ function App() {
               type={modalType}
               onClose={handleCloseModal}
               onReset={resetGame}
+              onResetScores={resetScores}
               winnerMark={winnerMark}
               handleSetScreen={handleSetScreen}
               handleSetModalType={handleSetModalType}
+              playerOneMark={playerOneMark}
+              setCurrentTurn={setCurrentTurn}
+              gameMode={gameMode}
             />
           )}
         </>
       )}
     </>
-  );
-}
-
-function Modal({
-  type,
-  onClose,
-  onReset,
-  winnerMark,
-  handleSetScreen,
-  handleSetModalType,
-}) {
-  const dialogRef = useRef(null);
-
-  useEffect(() => {
-    const dialog = dialogRef.current;
-
-    if (!dialog) return;
-
-    dialog.showModal();
-
-    function handleClose() {
-      onClose();
-    }
-
-    dialog.addEventListener("close", handleClose);
-
-    return () => {
-      dialog.removeEventListener("close", handleClose);
-    };
-  }, [onClose]);
-
-  function handleConfirm() {
-    onReset();
-    dialogRef.current.close();
-  }
-
-  function handleQuit() {
-    onReset();
-    dialogRef.current.close();
-    handleSetScreen("welcome");
-    handleSetModalType(null);
-  }
-
-  return (
-    <dialog
-      ref={dialogRef}
-      className=" top-1/2 -translate-y-1/2 left-0 min-w-screen backdrop:bg-neutral-950/40 backdrop-blur-2xl flex flex-col gap-6 py-12 items-center justify-center bg-slate-800 text-slate-300 uppercase"
-    >
-      {type === "restart" && (
-        <>
-          <p className="text-preset-2 md:text-preset-1">restart game?</p>
-          <div className="text-slate-900 flex items-center gap-2">
-            <Button
-              className="bg-slate-300 cursor-pointer text-preset-4 p-4 hover:bg-slate-100"
-              onClick={() => dialogRef.current.close()}
-            >
-              No, cancel
-            </Button>
-            <Button
-              className="bg-player-two cursor-pointer text-preset-4 p-4 hover:bg-player-two-opaque"
-              onClick={handleConfirm}
-            >
-              Yes, restart
-            </Button>
-          </div>
-        </>
-      )}
-
-      {type === "win" && (
-        <>
-          <p className="text-preset-5-bold md:text-preset-4">player xxx wins</p>
-          <p
-            className={`text-preset-2 md:text-preset-1 ${winnerMark === "X" ? "text-player-one" : "text-player-two"} flex gap-4 items-center`}
-          >
-            {winnerMark === "X" ? (
-              <Xsvg className="text-player-one size-12" />
-            ) : (
-              <Osvg className="text-player-two size-12" />
-            )}{" "}
-            <span>takes the round</span>
-          </p>
-          <div className="text-slate-900 flex items-center gap-2">
-            <Button
-              className="bg-slate-300 cursor-pointer text-preset-4 p-4 hover:bg-slate-100"
-              onClick={handleQuit}
-            >
-              quit
-            </Button>
-            <Button
-              className="bg-player-two cursor-pointer text-preset-4 p-4 hover:bg-player-two-opaque"
-              onClick={handleConfirm}
-            >
-              next round
-            </Button>
-          </div>
-        </>
-      )}
-
-      {type === "draw" && (
-        <>
-          <p className="text-preset-2 md:text-preset-1">round tied</p>
-          <div className="text-slate-900 flex items-center gap-2">
-            <Button
-              className="bg-slate-300 cursor-pointer text-preset-4 p-4 hover:bg-slate-100"
-              onClick={handleQuit}
-            >
-              Quit
-            </Button>
-            <Button
-              className="bg-player-two cursor-pointer text-preset-4 p-4 hover:bg-player-two-opaque"
-              onClick={handleConfirm}
-            >
-              Next round
-            </Button>
-          </div>
-        </>
-      )}
-    </dialog>
-  );
-}
-
-function GameStart({
-  gameMode,
-  handleTileClick,
-  tiles,
-  handleMouseEnter,
-  handleMouseLeave,
-  hoveredIndex,
-  currentTurn,
-  handleSetModalType,
-  winningTiles,
-  winnerMark,
-}) {
-  return (
-    <>
-      <GameHeader
-        handleSetModalType={handleSetModalType}
-        currentTurn={currentTurn}
-      />
-      <GameBoard
-        handleTileClick={handleTileClick}
-        tiles={tiles}
-        hoveredIndex={hoveredIndex}
-        handleMouseEnter={handleMouseEnter}
-        handleMouseLeave={handleMouseLeave}
-        currentTurn={currentTurn}
-        winningTiles={winningTiles}
-        winnerMark={winnerMark}
-      />
-      <GameResults gameMode={gameMode} />
-    </>
-  );
-}
-
-function GameResults({ gameMode }) {
-  return (
-    <div className="grid grid-cols-3 gap-4 mt-4">
-      {Array.from({ length: 3 }).map((_, i) => (
-        <ResultsPanels
-          key={i}
-          className={
-            i === 0
-              ? "bg-player-one"
-              : i === 1
-                ? "bg-slate-300"
-                : "bg-player-two"
-          }
-        >
-          {gameMode === "cpu" && i === 0 && <span>x (you)</span>}
-          {gameMode === "cpu" && i === 1 && <span>ties</span>}
-          {gameMode === "cpu" && i === 2 && <span>o (cpu)</span>}
-          {gameMode === "player" && i === 0 && <span>x (p1)</span>}
-          {gameMode === "player" && i === 1 && <span>ties</span>}
-          {gameMode === "player" && i === 2 && <span>o (p2)</span>}
-
-          <span>0</span>
-        </ResultsPanels>
-      ))}
-    </div>
-  );
-}
-
-function GameBoard({
-  handleTileClick,
-  tiles,
-  handleMouseEnter,
-  handleMouseLeave,
-  hoveredIndex,
-  currentTurn,
-  winningTiles,
-  winnerMark,
-}) {
-  return (
-    <div className="grid grid-cols-3 gap-4 mt-6">
-      {Array.from({ length: 9 }).map((_, index) => (
-        <Button
-          key={index}
-          className={`border  aspect-square flex items-center justify-center ${tiles[index] ? "cursor-not-allowed" : "cursor-pointer"} ${winningTiles.includes(index) && winnerMark === "X" ? "bg-player-one" : winningTiles.includes(index) && winnerMark === "O" ? "bg-player-two" : "bg-slate-800"}`}
-          onClick={() => handleTileClick(index)}
-          onMouseEnter={() => handleMouseEnter(index)}
-          onMouseLeave={() => handleMouseLeave()}
-        >
-          {hoveredIndex !== null && hoveredIndex === index && (
-            <img
-              src={currentTurn === "X" ? IconOutlineX : IconOutlineO}
-              alt=""
-            />
-          )}
-          {tiles[index] === "X" && (
-            <Xsvg
-              className={`size-16 text-player-one ${winnerMark === "X" && "text-slate-800"}`}
-            />
-          )}
-          {tiles[index] === "O" && (
-            <Osvg
-              className={`size-16 text-player-two ${winnerMark === "O" && "text-slate-800"}`}
-            />
-          )}
-        </Button>
-      ))}
-    </div>
   );
 }
 
