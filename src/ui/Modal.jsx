@@ -6,6 +6,7 @@ function Modal({
   type,
   onClose,
   onReset,
+  onNextRound,
   winnerMark,
   handleSetScreen,
   handleSetModalType,
@@ -35,9 +36,8 @@ function Modal({
   }, [onClose]);
 
   function handleConfirm() {
-    onReset();
+    onNextRound();
     dialogRef.current.close();
-    setCurrentTurn((e) => (e === "X" ? "O" : "X"));
   }
 
   function handleQuit() {

@@ -34,6 +34,7 @@ function App() {
       O: 0,
     },
   );
+  const [startingMark, setStartingMark] = useState("X");
 
   useEffect(() => {
     function handlePopState() {
@@ -80,11 +81,21 @@ function App() {
 
   function resetGame() {
     setTiles(Array(9).fill(null));
-    setCurrentTurn("X");
+    setCurrentTurn(startingMark);
     setWinnerMark(null);
     setWinningTiles([]);
     setGameOver(false);
     localStorage.removeItem(STORAGE_KEY);
+  }
+
+  function nextRound() {
+    setStartingMark((prev) => (prev === "X" ? "O" : "X"));
+    setTiles(Array(9).fill(null));
+    setWinnerMark(null);
+    setWinningTiles([]);
+    setGameOver(false);
+
+    setCurrentTurn((prev) => (prev === "X" ? "O" : "X"));
   }
 
   function resetScores() {
@@ -333,6 +344,7 @@ function App() {
               onClose={handleCloseModal}
               onReset={resetGame}
               onResetScores={resetScores}
+              onNextRound={nextRound}
               winnerMark={winnerMark}
               handleSetScreen={handleSetScreen}
               handleSetModalType={handleSetModalType}
