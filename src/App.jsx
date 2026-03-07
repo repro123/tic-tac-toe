@@ -17,9 +17,9 @@ function App() {
   );
   const [gameMode, setGameMode] = useState(parsedGame?.gameMode ?? "");
   const [tiles, setTiles] = useState(parsedGame?.tiles ?? Array(9).fill(null));
-  const [currentTurn, setCurrentTurn] = useState(
-    parsedGame?.currentTurn ?? "X",
-  );
+  // const [currentTurn, setCurrentTurn] = useState(
+  //   parsedGame?.currentTurn ?? "X",
+  // );
   const [hoveredIndex, setHoveredIndex] = useState(null);
   const [modalType, setModalType] = useState(null);
   const [gameOver, setGameOver] = useState(parsedGame?.gameOver ?? false);
@@ -35,6 +35,14 @@ function App() {
     },
   );
   const [startingMark, setStartingMark] = useState("X");
+
+  const nonEmptyTilesCount = tiles.filter((tile) => tile !== null).length;
+  const currentTurn =
+    nonEmptyTilesCount % 2 === 0
+      ? startingMark
+      : startingMark === "X"
+        ? "O"
+        : "X";
 
   useEffect(() => {
     function handlePopState() {
@@ -81,7 +89,7 @@ function App() {
 
   function resetGame() {
     setTiles(Array(9).fill(null));
-    setCurrentTurn(startingMark);
+    // setCurrentTurn(startingMark);
     setWinnerMark(null);
     setWinningTiles([]);
     setGameOver(false);
@@ -95,7 +103,7 @@ function App() {
     setWinningTiles([]);
     setGameOver(false);
 
-    setCurrentTurn((prev) => (prev === "X" ? "O" : "X"));
+    // setCurrentTurn((prev) => (prev === "X" ? "O" : "X"));
   }
 
   function resetScores() {
@@ -147,7 +155,7 @@ function App() {
         setScores((prev) => ({ ...prev, draw: prev.draw + 1 }));
         setGameOver(true);
       } else {
-        setCurrentTurn((e) => (e === "X" ? "O" : "X"));
+        // setCurrentTurn((e) => (e === "X" ? "O" : "X"));
       }
     }
   }
@@ -162,6 +170,11 @@ function App() {
   function handleGameMode(mode) {
     setGameMode(mode);
     setScreenToShow("game");
+    setTiles(Array(9).fill(null));
+    setWinnerMark(null);
+    setWinningTiles([]);
+    setGameOver(false);
+    resetScores();
 
     history.pushState({ screen: "game" }, "", "/game");
   }
@@ -294,7 +307,7 @@ function App() {
       setScores((prev) => ({ ...prev, draw: prev.draw + 1 }));
       setGameOver(true);
     } else {
-      setCurrentTurn(playerOneMark);
+      // setCurrentTurn(playerOneMark);
     }
   }
 
@@ -349,7 +362,7 @@ function App() {
               handleSetScreen={handleSetScreen}
               handleSetModalType={handleSetModalType}
               playerOneMark={playerOneMark}
-              setCurrentTurn={setCurrentTurn}
+              // setCurrentTurn={setCurrentTurn}
               gameMode={gameMode}
             />
           )}

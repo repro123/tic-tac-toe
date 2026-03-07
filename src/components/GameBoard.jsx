@@ -31,12 +31,12 @@ export default function GameBoard({
           )}
           {tiles[index] === "X" && (
             <Xsvg
-              className={`size-16 text-player-one ${winnerMark === "X" && "text-slate-800"}`}
+              className={`size-16 text-player-one ${winningTiles.includes(index) && winnerMark === "X" && "text-slate-800"}`}
             />
           )}
           {tiles[index] === "O" && (
             <Osvg
-              className={`size-16 text-player-two ${winnerMark === "O" && "text-slate-800"}`}
+              className={`size-16 text-player-two ${winningTiles.includes(index) && winnerMark === "O" && "text-slate-800"}`}
             />
           )}
         </Button>

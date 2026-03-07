@@ -11,7 +11,7 @@ function Modal({
   handleSetScreen,
   handleSetModalType,
   playerOneMark,
-  setCurrentTurn,
+  // setCurrentTurn,
   gameMode,
   onResetScores,
 }) {
