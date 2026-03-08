@@ -17,12 +17,8 @@ function App() {
   );
   const [gameMode, setGameMode] = useState(parsedGame?.gameMode ?? "");
   const [tiles, setTiles] = useState(parsedGame?.tiles ?? Array(9).fill(null));
-  // const [currentTurn, setCurrentTurn] = useState(
-  //   parsedGame?.currentTurn ?? "X",
-  // );
   const [hoveredIndex, setHoveredIndex] = useState(null);
   const [modalType, setModalType] = useState(null);
-  const [gameOver, setGameOver] = useState(parsedGame?.gameOver ?? false);
   const [winningTiles, setWinningTiles] = useState(
     parsedGame?.winningTiles ?? [],
   );
@@ -44,6 +40,8 @@ function App() {
         ? "O"
         : "X";
 
+  const gameOver = winnerMark !== null || tiles.every((t) => t !== null);
+
   useEffect(() => {
     function handlePopState() {
       const path = window.location.pathname;
@@ -63,11 +61,9 @@ function App() {
   useEffect(() => {
     const data = {
       tiles,
-      currentTurn,
       scores,
       selectedMark,
       gameMode,
-      gameOver,
       winnerMark,
       winningTiles,
     };
@@ -89,10 +85,8 @@ function App() {
 
   function resetGame() {
     setTiles(Array(9).fill(null));
-    // setCurrentTurn(startingMark);
     setWinnerMark(null);
     setWinningTiles([]);
-    setGameOver(false);
     localStorage.removeItem(STORAGE_KEY);
   }
 
@@ -101,9 +95,6 @@ function App() {
     setTiles(Array(9).fill(null));
     setWinnerMark(null);
     setWinningTiles([]);
-    setGameOver(false);
-
-    // setCurrentTurn((prev) => (prev === "X" ? "O" : "X"));
   }
 
   function resetScores() {
@@ -148,12 +139,10 @@ function App() {
           ...prev,
           [winner]: prev[winner] + 1,
         }));
-        setGameOver(true);
       } else if (newTiles.every((t) => t !== null)) {
         setModalType("draw");
 
         setScores((prev) => ({ ...prev, draw: prev.draw + 1 }));
-        setGameOver(true);
       } else {
         // setCurrentTurn((e) => (e === "X" ? "O" : "X"));
       }
@@ -173,7 +162,6 @@ function App() {
     setTiles(Array(9).fill(null));
     setWinnerMark(null);
     setWinningTiles([]);
-    setGameOver(false);
     resetScores();
 
     history.pushState({ screen: "game" }, "", "/game");
@@ -300,12 +288,9 @@ function App() {
         ...prev,
         [winner]: prev[winner] + 1,
       }));
-
-      setGameOver(true);
     } else if (newTiles.every((t) => t !== null)) {
       setModalType("draw");
       setScores((prev) => ({ ...prev, draw: prev.draw + 1 }));
-      setGameOver(true);
     } else {
       // setCurrentTurn(playerOneMark);
     }
@@ -321,7 +306,7 @@ function App() {
     }, 500);
 
     return () => clearTimeout(timer);
-  }, [tiles, currentTurn, gameMode, gameOver, screenToShow]);
+  }, [tiles, currentTurn, gameMode, screenToShow]);
 
   return (
     <>
@@ -362,7 +347,6 @@ function App() {
               handleSetScreen={handleSetScreen}
               handleSetModalType={handleSetModalType}
               playerOneMark={playerOneMark}
-              // setCurrentTurn={setCurrentTurn}
               gameMode={gameMode}
             />
           )}
