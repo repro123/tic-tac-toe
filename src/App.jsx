@@ -5,12 +5,13 @@ import { useState, useEffect } from "react";
 
 const STORAGE_KEY = "tic-tac-toe-state";
 
-function App() {
-  const savedGame = localStorage.getItem("tic-tac-toe-state");
-  const parsedGame = savedGame ? JSON.parse(savedGame) : null;
+const savedGame = localStorage.getItem("tic-tac-toe-state");
+const parsedGame = savedGame ? JSON.parse(savedGame) : null;
+const path = window.location.pathname;
 
+function App() {
   const [screenToShow, setScreenToShow] = useState(() => {
-    return window.location.pathname === "/game" ? "game" : "welcome";
+    return path === "/game" ? "game" : "welcome";
   });
   const [selectedMark, setSelectedMark] = useState(
     parsedGame?.selectedMark ?? "X",
@@ -44,7 +45,7 @@ function App() {
 
   useEffect(() => {
     function handlePopState() {
-      const path = window.location.pathname;
+      // const path = window.location.pathname;
 
       if (path === "/game") {
         setScreenToShow("game");
